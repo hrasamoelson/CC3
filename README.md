@@ -1,6 +1,6 @@
 **Question 1.1** donner la liste des en-têtes de la réponse HTTP du server
 *    HTTP/1.1 200 OK 
-*   Date: Thu, 21 Sep 2023 21:32:12 GMT 
+*   Date: Thu, 28 Sep 2023 15:03:12 GMT 
 *   Connection: keep-alive 
 *   Keep-Alive: timeout=5 
 *   Transfer-Encoding: chunked
@@ -91,7 +91,6 @@ async function requestListener(request, response) {
     let random_numbers = [];
     try {
         const contents = await fs.readFile("index.html", "utf8");
-        console.log(request.url.split("/"));
         switch (request.url.split("/")[1]) {
             case "random":
                 response.writeHead(200);
@@ -122,22 +121,13 @@ async function requestListener(request, response) {
 ```
 ## Partie 2 : framework Express
 
-On voit que la gestion manuelle des routes avec un grand `switch` va devenir complexe et laborieuse.
-Les frameworks serveur comme <http://expressjs.com/>, <https://koajs.com/>, <https://www.fastify.io/> ou <https://hapi.dev/> vont s'occuper de cette plomberie et proposer une API pour enregistrer des _handlers_ aux différentes routes de l'application.
-
-### Création du serveur
-
-Créer le fichier `server-express.mjs` et exécuter la commande suivante :
-
-```bash
-npm install --save express http-errors loglevel morgan
-```
-
 **Question 2.1** donner les URL des documentations de chacun des modules installés par la commande précédente.
+Voici la liste des documentations: 
 
-Ensuite, sur le modèle des scripts `http-prod` et `http-dev` du fichier `package.json`, créer les scripts `express-prod` et `express-dev`.
-
-Ensuite, ajouter le contenu suivant au fichier `server-express.mjs`
+Express : https://expressjs.com/en/5x/api.html  
+Morgan : https://expressjs.com/en/resources/middleware/morgan.html  
+loglevel : https://www.npmjs.com/package/loglevel  
+http-errors : https://www.npmjs.com/package/http-errors  
 
 ```js
 import express from "express";
@@ -165,55 +155,40 @@ app.listen(port, host);
 
 **Question 2.2** vérifier que les trois routes fonctionnent.
 
+- `http://localhost:8000/index.html => 200`
+- `http://localhost:8000/random.html => 200`
+- `http://localhost:8000/ => 200`
+
+On peut constater que les routes fonctionnent.
+
 **Question 2.3** lister les en-têtes des réponses fournies par Express. Lesquelles sont nouvelles par rapport au serveur HTTP ?
 
-Remplacer la dernière ligne de `server-express.mjs` par les suivantes
-
-```js
-const server = app.listen(port, host);
-
-server.on("listening", () =>
-  console.info(
-    `HTTP listening on http://${server.address().address}:${server.address().port} with mode '${process.env.NODE_ENV}'`,
-  ),
-);
-
-console.info(`File ${import.meta.url} executed.`);
+Les nouveaux headers:
+```
+X-Powered-By: Express 
+Accept-Ranges: bytes 
+Cache-Control: public, max-age=0 
+ETag: W/"45-z9Q9hnxAqFWuhajnT/F6oMPuICM"
+Content-Type: text/html; charset=UTF-8 
+Content-Length: 69 
 ```
 
 **Question 2.4** quand l'événement `listening` est-il déclenché ?
 
-**Commit/push** dans votre dépot Git.
+L'évenement est déclenché lorsque l'application se connecte au port et à l'address ip spécifié.  
+Ici elle se déclenche quand elle se connecte au port 8000 et à l'ip 127.0.0.1.
 
-### Ajout de middlewares
-
-Ici, la route de la page d'accueil charge dynamiquement à chaque requête une ressource statique.
-Ce n'est pas très performant, d'autant plus qu'un _middleware_ Epxress [existe déjà pour ça](http://expressjs.com/en/resources/middleware/serve-static.html).
-
-- créer un sous-dossier `static`
-- déplacer le fichier `index.html` dans le sous-dossier `static`
-- extraire l'élément `<style>` de `index.html` dans un nouveau fichier `style.css` que vous lierez à `index.html` avec `<link rel="stylesheet" href="style.css">`
-- remplacer la route de la page d'accueil par `app.use(express.static("static"));`
 
 **Question 2.5** indiquer quelle est l'option (activée par défaut) qui redirige `/` vers `/index.html` ?
 
+Il s'agit l'option index :
+app.use(express.static("static",{index:index.html}));
+
 **Question 2.6** visiter la page d'accueil puis rafraichir (Ctrl+R) et _ensuite_ **forcer** le rafraichissement (Ctrl+Shift+R). Quels sont les codes HTTP sur le fichier `style.css` ? Justifier.
 
-Ajouter la ligne `if (app.get("env") === "development") app.use(morgan("dev"));` au bon endroit dans `server-express.mjs` pour activer le middleware Morgan.
-
-**Commit/push** dans votre dépot Git.
-
-### Rendu avec EJS
-
-Le moteur de templating <https://ejs.co/> est l'équivalent de Jinja utilisé pour Python/Flask dans l'écosytème Nodes.js/Express.
-Une [extension VSCode](https://marketplace.visualstudio.com/items?itemName=DigitalBrainstem.javascript-ejs-support) est disponible pour EJS.
-
-On va utiliser le moteur EJS pour améliorer la page `random` générée dynamiquement côté serveur.
-
-1. créer un sous-dossier `views/` et créer un fichier `views/random.ejs` avec le contenu ci-après;
-2. exécuter la commande `npm install --save ejs`;
-3. ajouter la ligne `app.set("view engine", "ejs");` à `server-express.mjs`;
-4. modifier le _handler_ de la route `/random/:nb` avec `response.render("random", {numbers, welcome});` pour appeller le moteur de rendu, où `numbers` est un tableau de nombres aléatoires (comme précédemment) et `welcome` une chaîne de caractères.
+Lorsque que l'on rafrachit normalement (Ctrl+R) on reçoit un code http 304.  
+Mais lorsque l'on force le rafraichissement (Ctrl+Shift+R) on reçoit un code http 200.  
+Cela est dû au fait que le navigateur utilise le cache lors d'un rafraichissement normal, ainsi il n'a pas besoin de charger la page de nouveau à l'inverse du rafraichissement forcé.
 
 #### Contenu de `views/random.ejs`
 
@@ -238,8 +213,6 @@ On va utiliser le moteur EJS pour améliorer la page `random` générée dynamiq
   </body>
 </html>
 ```
-
-**Commit/push** dans votre dépot Git.
 
 ### Gestion d'erreurs
 
