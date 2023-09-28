@@ -1,116 +1,51 @@
-# Tutoriel HTTP/Express Node.js
-
-- [Tutoriel HTTP/Express Node.js](#tutoriel-httpexpress-nodejs)
-  - [Partie 1 : serveur HTTP natif Node.js](#partie-1--serveur-http-natif-nodejs)
-    - [Installation](#installation)
-    - [Servir différents types de contenus](#servir-différents-types-de-contenus)
-    - [Mode développement](#mode-développement)
-    - [Gestion manuelle des routes](#gestion-manuelle-des-routes)
-  - [Partie 2 : framework Express](#partie-2--framework-express)
-    - [Création du serveur](#création-du-serveur)
-    - [Ajout de middlewares](#ajout-de-middlewares)
-    - [Rendu avec EJS](#rendu-avec-ejs)
-    - [Gestion d'erreurs](#gestion-derreurs)
-  - [Conclusion](#conclusion)
-
-Ce tutorial est inspiré de [_How To Create a Web Server in Node.js with the HTTP Module_](https://www.digitalocean.com/community/tutorials/how-to-create-a-web-server-in-node-js-with-the-http-module) et compléter avec une partie sur Express.
-
-Ce tutorial vous fait prendre en main l'environnement Node.js avec un petit projet de serveur web monté pas à pas, utilisant essentiellement les bilbiothèques standards de Node.js. Le framework <http://expressjs.com/> sera introduit ensuite.
-
-- installer Node.js <https://nodejs.org/en/download/> pour votre environnement
-- cloner le projet de départ de la GitHub Classroom <https://classroom.github.com/a/8mQFHDdO>
-  - on obtient un dossier `tutoriel-http-express-node-LOGIN` qu'on appellera `devweb-tp5` par la suite par commodité
-
-**RENDU** vous devrez remplir le fichier `README.md` avec les questions du sujet et **commiter/pousser sur GitHub Classroom**.
-Les différentes étapes à réaliser seront aussi committées. La date limite de rendu est le **lundi 29 août 2022 23h59**.
-
-## Partie 1 : serveur HTTP natif Node.js
-
-### Installation
-
-Exécuter la commande `npm init` dans le dossier `devweb-tp5`.
-Répondre avec les valeurs par défaut, sauf pour _entry point: (index.js)_ où donner la valeur `server-http.mjs`
-À ce stade, un fichier `package.json` a du être créé à peu près comme suit.
-
-```json
-{
-  "name": "devweb-tp5",
-  "version": "1.0.0",
-  "description": "",
-  "main": "server-http.mjs",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC"
-}
-```
-
-Toujours dans le dossier `devweb-tp5` , créer le fichier `server-http.mjs` avec le contenu suivant :
-
-```js
-import http from "node:http";
-
-const host = "localhost";
-const port = 8000;
-
-function requestListener(_request, response) {
-  response.writeHead(200);
-  response.end("<html><h1>My first server!<h1></html>");
-}
-
-const server = http.createServer(requestListener);
-server.listen(port, host, () => {
-  console.log(`Server is running on http://${host}:${port}`);
-});
-```
-
-Enfin, exécuter la commande `node server-http.mjs` et vérifier que votre application web fonctionne en vous connectant avec votre navigateur.
-
-**Question 1.1** donner la liste des en-têtes de la réponse HTTP du serveur.
-
-### Servir différents types de contenus
-
-Maintenant, remplacer la fonction `requestListener()` par la suivante et tester :
-
-```js
-function requestListener(_request, response) {
-  response.setHeader("Content-Type", "application/json");
-  response.end(JSON.stringify({ message: "I'm OK" }));
-}
-```
+**Question 1.1** donner la liste des en-têtes de la réponse HTTP du server
+*    HTTP/1.1 200 OK 
+*   Date: Thu, 21 Sep 2023 21:32:12 GMT 
+*   Connection: keep-alive 
+*   Keep-Alive: timeout=5 
+*   Transfer-Encoding: chunked
 
 **Question 1.2** donner la liste des en-têtes qui ont changé depuis la version précédente.
 
-Remplacer enfin la fonction `requestListener()` par la suivante et tester :
-
-```js
-import fs from "node:fs/promises";
-
-function requestListener(_request, response) {
-  fs.readFile("index.html", "utf8")
-    .then((contents) => {
-      response.setHeader("Content-Type", "text/html");
-      response.writeHead(200);
-      return response.end(contents);
-    })
-    .catch((error) => console.error(error));
-}
-```
+L'en-têtes qui à changé est .`Content-Type: application/json`
 
 **Question 1.3** que contient la réponse reçue par le client ?
 
+Elle ne contient rien étant donné que le ficher index.html n'existe pas
+
 **Question 1.4** quelle est l'erreur affichée dans la console ? Retrouver sur <https://nodejs.org/api> le code d'erreur affiché.
+```
+[Error: ENOENT: no such file or directory, open 'C:\Users\Utilisateur\Desktop\TP5_DEVWEB\index.html'] {
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\Utilisateur\\Desktop\\TP5_DEVWEB\\index.html'
+}
+```
+
+ENOENT (No such file or directory) : Cette erreur est souvent soulevée par l'opération fs pour indiquer qu'un composant du 
+chemin d'accès spécifié n'existe pas. Aucune entité (fichier ou répertoire) n'a pu être trouvée par le chemin donné.
 
 Modifier la fonction `requestListener()` précédente pour que le client recoive une erreur 500 si `index.html` est introuvable en remplacant le callback de la méthode `Promise.catch()`.
 
-Maintenant, renommer le fichier `__index.html` en `index.html` et tester à nouveau.
 
-Enfin, reprenez `requestListener()` dans le style `async/await`.
+Maintenant, renommer le fichier `__index.html` en `index.html` et tester à nouveau.  
+**L'utilisateur reçoit une reponse**
 
 **Question 1.5** donner le code de `requestListener()` modifié _avec gestion d'erreur_ en `async/await`.
 
-**Commit/push** dans votre dépot Git.
+```js
+async function requestListener(_request, response) {
+  try {
+    const contents = await fs.readFile("index.html", "utf8");
+    response.setHeader("Content-Type", "text/html");
+    response.writeHead(200);
+    return response.end(`${contents}`);
+  } catch (error) {
+    response.writeHead(500);
+    response.end(`${error}}`);
+  }
+}
+```
 
 ### Mode développement
 
@@ -121,15 +56,7 @@ Dans le dossier `devweb-tp5` exécuter les commandes suivantes :
 
 **Question 1.6** indiquer ce que cette commande a modifié dans votre projet.
 
-Ensuite, remplacer la propriété `"scripts"` du fichier `package.json` par la suivante :
-
-```json
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "http-dev": "cross-env NODE_ENV=development nodemon server-http.mjs",
-    "http-prod": "cross-env NODE_ENV=production node server-http.mjs"
-  },
-```
+Cette commande a ajouté un nouveau fichier json `package-lock.json` et a ajouté de nouveaux modules.
 
 Exécuter `npm run http-dev`, visiter le site, puis _pendant que le serveur s'exécute_ modifier le fichier `server-http.mjs` en ajoutant la ligne `console.log("NODE_ENV =", process.env.NODE_ENV);`.
 Enregistrer le fichier et vérifier qu'il y a eu rechargement automatique grâce à <https://nodemon.io/>.
@@ -137,62 +64,62 @@ Ensuite, faire la même chose avec la commande `npm run http-prod`.
 
 **Question 1.7** quelles sont les différences entre les scripts `http-dev` et `http-prod` ?
 
-Les fichiers [`.eslintrc.json`](.eslintrc.json) et [`.prettierrc`](.prettierrc) sont fournis dans le dossier `devweb-tp5`. Exécuter la commande suivante pour installe les dépendances :
-
-```bash
-npm install --save-dev prettier eslint eslint-config-prettier eslint-plugin-import eslint-plugin-jest eslint-plugin-node eslint-plugin-promise eslint-plugin-security eslint-plugin-unicorn
-```
-
-Vérifier que l'autoformattage avec <https://prettier.io> et le linting avec <https://eslint.org/> fonctionnent dans VSCode **et** en ligne de commande avec les commandes suivantes :
-
-- `npx eslint server-http.mjs`
-- `npx prettier server-http.mjs --write`
-
-**Commit/push** dans votre dépot Git.
+Le script `http-dev` permet de relancer le serveur lorsqu l'on modifie est sauvergarde des fichier relié au projet.  
+Le script `http-prod` permet de tester le rendu final est n'est pas sujet aux modifications.
 
 ### Gestion manuelle des routes
 
-Remplacer la fonction `requestListener()` par la suivante :
-
-```js
-async function requestListener(request, response) {
-  response.setHeader("Content-Type", "text/html");
-  try {
-    const contents = await fs.readFile("index.html", "utf8");
-    switch (request.url) {
-      case "/index.html":
-        response.writeHead(200);
-        return response.end(contents);
-      case "/random.html":
-        response.writeHead(200);
-        return response.end(`<html><p>${Math.floor(100 * Math.random())}</p></html>`);
-      default:
-        response.writeHead(404);
-        return response.end(`<html><p>404: NOT FOUND</p></html>`);
-    }
-  } catch (error) {
-    console.error(error);
-    response.writeHead(500);
-    return response.end(`<html><p>500: INTERNAL SERVER ERROR</p></html>`);
-  }
-}
-```
-
-Tester les **routes** suivantes :
-
-- `http://localhost:8000/index.html`
-- `http://localhost:8000/random.html`
-- `http://localhost:8000/`
-- `http://localhost:8000/dont-exist`
-
 **Question 1.8** donner les codes HTTP reçus par votre navigateur pour chacune des quatre pages précédentes.
+
+Teste des **routes**:
+
+- `http://localhost:8000/index.html => 200`
+- `http://localhost:8000/random.html => 200`
+- `http://localhost:8000/ => 404`
+- `http://localhost:8000/dont-exist => 404`
 
 Maintenant, on veut ajouter une route `/random/:nb` où `:nb` est un paramètre entier avec le nombre d'entiers à générer. Ajouter cette route au `switch` et reprendre la page `random.html` pour générer autant de nombres qu'indiqué dans l'URL.
 
 Pour cela, utiliser `request.url.split("/");` qui va décomposer le chemin demandé et faire le `switch` sur le premier niveau de l'arborescence. Faites en sorte que le `switch` traite `/index.html` et `/` de la même façon.
 
-**Commit/push** dans votre dépot Git.
+Fonction après modification:
 
+```js
+let nb = 1;
+async function requestListener(request, response) {
+    response.setHeader("Content-Type", "text/html");
+    let random_numbers = [];
+    try {
+        const contents = await fs.readFile("index.html", "utf8");
+        console.log(request.url.split("/"));
+        switch (request.url.split("/")[1]) {
+            case "random":
+                response.writeHead(200);
+                nb = request.url.split("/")[2];
+                return response.end(`<html><p>Nouveau nb =${nb}</p></html>`);
+            case "":
+                response.writeHead(200);
+                return response.end(contents);
+            case "index.html":
+                response.writeHead(200);
+                return response.end(contents);
+            case "random.html":
+                response.writeHead(200);
+                for (let i = 0; i < nb; i++) {
+                    random_numbers.push(Math.floor(100 * Math.random()));
+                }
+                return response.end(`<html><p>${random_numbers}</p></html>`);
+            default:
+                response.writeHead(404);
+                return response.end(`<html><p>404: NOT FOUND</p></html>`);
+        }
+    } catch (error) {
+        console.error(error);
+        response.writeHead(500);
+        return response.end(`<html><p>500: INTERNAL SERVER ERROR</p></html>`);
+    }
+}
+```
 ## Partie 2 : framework Express
 
 On voit que la gestion manuelle des routes avec un grand `switch` va devenir complexe et laborieuse.
